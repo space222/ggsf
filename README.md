@@ -1,11 +1,3 @@
-# GGSF
-<style>h1,h2,h3,h4,h5,h6 { text-align: center; }
-p { text-indent: 0.8in; }
-body { background-color: lavender; }
-/* table { border-style: solid; border-width: 1px; } */
-</style>
-</head>
-<body>
 <h1>GGSF</h1>
 <h2>Intro</h2>
 <p>GGSF is an <a href="https://en.wikipedia.org/wiki/Entity_component_system">ECS</a>-based framework for (currently 2D) game
