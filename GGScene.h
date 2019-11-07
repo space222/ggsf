@@ -27,6 +27,13 @@ struct Transform2D
 	float x, y, angle;
 };
 
+struct GGRect
+{
+	GGRect(int X, int Y, int w, int h) : x(X), y(Y), width(w), height(h) {}
+	GGRect() : x(0), y(0), width(0), height(0) {}
+	int x, y, width, height;
+};
+
 class GGScene
 {
 public:

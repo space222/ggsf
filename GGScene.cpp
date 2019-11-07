@@ -142,8 +142,7 @@ GGScene* GGScene::loadFile(const std::wstring& fname, GGLoadProgress* LP)
 			}
 		}
 	}
-	//else OutputDebugStringA("\n\nSHIT SHIT SHIT\n\n");
-
+	
 	if (settings.contains("begin-calls"))
 	{
 		std::vector<std::string> bcs = settings["begin-calls"].get<std::vector<std::string> >();
@@ -236,7 +235,7 @@ GGScene* GGScene::loadFile(const std::wstring& fname, GGLoadProgress* LP)
 						P.second->create_instance(scene, instance, P.first);
 					}
 					
-					OutputDebugStringA("\n\nGOT TRANSFORMED!\n\n");
+					//OutputDebugStringA("\n\nGOT TRANSFORMED!\n\n");
 					if (i && scene->entities.has<EntityID>(instance))
 					{
 						std::string Id = scene->entities.get<EntityID>(instance).id;

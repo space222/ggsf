@@ -53,10 +53,15 @@ public:
 		return;
 	}
 
+	static float screenWidth() { return screen_width; }
+	static float screenHeight() { return screen_height; }
+
+	static void resize(int width, int height) {}
+
 	static float aspect() { return aspectRatio; }
 
 private:
-	static float aspectRatio;
+	static float aspectRatio, screen_width, screen_height;
 	static void createSwapChain(winrt::Windows::UI::Core::CoreWindow&);
 	static void create2d(winrt::Windows::UI::Core::CoreWindow&);
 

@@ -21,6 +21,13 @@ private:
 	cpSpace* world;
 };
 
+struct cpBody;
+
+struct Phys2D
+{
+	cpBody* body;
+};
+
 class Physics2DComponent : public ComponentInterface
 {
 public:

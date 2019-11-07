@@ -209,6 +209,8 @@ void GlobalX::createSwapChain(winrt::Windows::UI::Core::CoreWindow& win)
 	depthdesc.Width = backBufferDesc.Width;
 	depthdesc.Height = backBufferDesc.Height;
 	aspectRatio = backBufferDesc.Width / (float)backBufferDesc.Height;
+	screen_width = backBufferDesc.Width;
+	screen_height = backBufferDesc.Height;
 	depthdesc.MipLevels = 1;
 	depthdesc.ArraySize = 1;
 	depthdesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -335,6 +337,8 @@ winrt::com_ptr<ID3D11DeviceContext1> GlobalX::mcont;
 winrt::com_ptr<ID3D11Texture2D> GlobalX::depthBuffer;
 winrt::com_ptr<ID3D11DepthStencilView> GlobalX::depthView;
 float GlobalX::aspectRatio;
+float GlobalX::screen_width;
+float GlobalX::screen_height;
 
 winrt::com_ptr<ID2D1Device> GlobalX::mdev2d;
 winrt::com_ptr<ID2D1DeviceContext> GlobalX::mcont2d;

@@ -121,6 +121,7 @@ struct App : implements<App, IFrameworkViewSource, IFrameworkView>
 		{
 			dispatcher.ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
 			GlobalX::Clear(scene->clearColor);
+			scene->update();
 			scene->render();
 			GlobalX::Present(1, 0);
 		}

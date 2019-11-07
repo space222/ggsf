@@ -2,7 +2,7 @@
 #include "ChipmunkSystem.h"
 #include <chipmunk\chipmunk.h>
 
-void update_world(cpBody* body, GGScene* scene)
+void update_body(cpBody* body, GGScene* scene)
 {   // passed as the iterator function to cpSpaceEachBody
 	auto ud = cpBodyGetUserData(body);
 	entt::entity E = (entt::entity)(u64)ud;
@@ -15,14 +15,15 @@ void update_world(cpBody* body, GGScene* scene)
 
 void ChipmunkSystem::update(GGScene* scene)
 {
-	cpSpaceEachBody(world,(cpSpaceBodyIteratorFunc) update_world, (void*)scene);
+	cpSpaceStep(world, 1.0f / 60.0f);
+	cpSpaceEachBody(world,(cpSpaceBodyIteratorFunc) update_body, (void*)scene);
 	return;
 }
 
 ChipmunkSystem::ChipmunkSystem()
 {
 	world = cpSpaceNew();
-	cpSpaceSetGravity(world, cpVect{ 0, -100 });
+	cpSpaceSetGravity(world, cpVect{ 0, 100 });
 	return;
 }
 
@@ -73,11 +74,11 @@ bool Physics2DComponent::create_instance(GGScene* scene, entt::entity E, nlohman
 	if (J.contains("circles") && J["circles"].is_array())
 	{
 		circles = J["circles"].get<std::vector<float>>();
-		total_shapes = (int)circles.size() / 6;
-		for (int i = 0; i < circles.size() / 6; ++i)
+		total_shapes = (int)circles.size() / 5;
+		for (int i = 0; i < circles.size() / 5; ++i)
 		{
-			cpVect p{ segments[i * 6 + 3], segments[i * 6 + 4] };
-			moment +=(float) cpMomentForCircle(total_mass += segments[i * 6], 0, segments[i * 6 + 2], p);
+			cpVect p{ circles[i * 5 + 3], circles[i * 5 + 4] };
+			moment +=(float) cpMomentForCircle(total_mass += circles[i * 5], 0, circles[i * 5 + 4], p);
 		}
 	}
 
@@ -92,6 +93,11 @@ bool Physics2DComponent::create_instance(GGScene* scene, entt::entity E, nlohman
 		}
 
 		body = cpBodyNew(mass, moment);
+		cpSpaceAddBody(chip->space(), body);
+		Transform2D t;
+		if (scene->entities.has<Transform2D>(E)) t = scene->entities.get<Transform2D>(E);
+		cpBodySetPosition(body, cpVect{ t.x, t.y });
+		cpBodySetAngle(body, t.angle);
 	}
 
 	for (int i = 0; i < segments.size() / 6; ++i)
@@ -100,27 +106,26 @@ bool Physics2DComponent::create_instance(GGScene* scene, entt::entity E, nlohman
 		cpVect b{ segments[i * 6 + 4], segments[i * 6 + 5] };
 
 		cpShape* s = cpSegmentShapeNew(body, a, b, 0);
+		cpSpaceAddShape(chip->space(), s);
 		cpShapeSetFriction(s, segments[i * 6 + 1]);
 	}
 
-	for (int i = 0; i < circles.size() / 6; ++i)
+	for (int i = 0; i < circles.size() / 5; ++i)
 	{
-		cpVect p{ segments[i * 6 + 3], segments[i * 6 + 4] };
-		cpShape* s = cpCircleShapeNew(body, segments[i * 6 + 2], p);
-		cpShapeSetFriction(s, segments[i * 6 + 1]);
+		cpVect p{ circles[i * 5 + 2], circles[i * 5 + 3] };
+		cpShape* s = cpCircleShapeNew(body, circles[i * 5 + 4], p);
+		cpSpaceAddShape(chip->space(), s);
+		cpShapeSetFriction(s, circles[i * 5 + 1]);
 	}
 
-	Transform2D t;
-	if (scene->entities.has<Transform2D>(E)) t = scene->entities.get<Transform2D>(E);
-
+	
 	if (type == 0)
 	{
-		cpSpaceAddBody(chip->space(), body);
 		cpBodySetUserData(body, (cpDataPointer)E);
+		scene->entities.assign_or_replace<Phys2D>(E, body);
+	} else {
+		// nothing for static items currently
 	}
-
-	cpBodySetPosition(body, cpVect{ t.x, t.y });
-	cpBodySetAngle(body, t.angle);
 	
 	return true;
 }
