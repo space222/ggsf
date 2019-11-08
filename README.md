@@ -15,6 +15,7 @@ Systems (the 'S' in ECS) to initialize for the scene, and the order to call
 specific SystemInterface functions. Available settings:</p>
 <table border="1"><tr><th>Name</th><th>Function</th></tr>
 <tr><td>clear-color</td><td>The color with which to fill the screen each frame before any other rendering. array of 4 floats.</td></tr>
+	<tr><td>script-file</td><td>The name of the script file to use for this scene</td></tr>
 <tr><td>systems</td><td>A list of Systems that will be used in this scene</td></tr>
 <tr><td>begin-calls</td><td>A list of Systems that need their begin function called and in the order given</td></tr>
 <tr><td>update-calls</td><td>A list of Systems that need their update function called and in the order given</td></tr>
@@ -88,6 +89,7 @@ used (case sensitive) for global settings ("systems", "x-calls", etc).</p>
 <p>System Interface functions:</p>
 <table border="1"><tr><th>Function</th><th>Purpose</th></tr>
 <tr><td>register_components</td><td>Add components to be usable by the scene</td></tr>
+	<tr><td>init_scripting</td><td>Add types and functions to the scene's Lua state</td></tr>
 <tr><td>begin</td><td>called when the scene is about to start running</td></tr>
 <tr><td>update</td><td>called each frame, but is conceptually <em>not</em> a render pass</td></tr>
 <tr><td>render</td><td>called each frame, but <em>is</em> rendering</td></tr>
@@ -117,6 +119,11 @@ that order. The rest is up to the developer.</p>
 <hr>
 <h2>Scripting / Lua</h2>
 <p>Scripting in GGSF uses Lua; it is accessed via functions in GGScene. Systems add functions and types to the scene's scripting state. The global setting "script-file" will load a file that contains all the scripting used in the scene. A function "update()", if it exists, will be the first thing called by GGScene::update(). It is possible to do an entire scene or even the whole game's logic in the update script function, instead of C++.</p>
+
+
+<h2>Building GGSF / Demo</h2>
+<p>The "demo" / App.cpp depends on a "blank core app" C++ project. You'll need libvorbis/libogg for the Audio system. Chipmunk should be self-explanatory. Nuklear and its system will likely get removed in favor of a different game-settings-UI system, so delete those 3 files. The rest is headers like <a href="https://github.com/nlohmann/json">nlohmann/json</a> , <a href="https://github.com/thephd/sol2">Sol3</a> , and EnTT which you'll need to add to include path. stb_image (by <a href="https://github.com/nothings/stb">Sean Barrett</a>) and <a href="https://github.com/richgel999/miniz">miniz</a> which are included directly. The HLSL require Shader Model 5. Set them to create headers/bytecode variables based on file name.</p>
+<p>I'd upload the vs2019 project file, but you'd have to change all the paths and grab all the right libraries anyway. Afaik, all you'd gain is a bit of organization (I'm only using 3 filters). If you really want to see this in action and actually think the project file would actually help, file an issue with why.</p>
 
 </body>
 </html>
