@@ -15,7 +15,7 @@ struct VOUT
 VOUT main(uint id: SV_VertexID)
 {
 	VOUT retval;
-	float angle = e1.x;
+	float angle = -e1.x;
 	float cosangle = cos(angle);
 	float sinangle = sin(angle);
 	

@@ -1,9 +1,11 @@
 #pragma once
 #include "GGScene.h"
 #include <entt/entt.hpp>
+#include "entt_extra.h"
 #include <json.hpp>
+#include <chrono>
+#include <chipmunk/chipmunk.h>
 
-struct cpSpace;
 
 class ChipmunkSystem : public SystemInterface
 {
@@ -11,13 +13,19 @@ public:
 	ChipmunkSystem();
 	virtual void register_components(GGScene* s) override;
 	virtual void update(GGScene*) override;
+	virtual void init_scripting(GGScene*) override;
+
+	std::chrono::duration<float> step;
 
 	//virtual void setting(GGScene*, const std::string& stg, std::variant< std::string, int, float>) override;
 	//virtual void begin(GGScene*) override;
 	cpSpace* space() const { return world; }
 
+	void addVelocity(entt::entity E, const cpVect& vel);
+	void setTransform(entt::entity E, const Transform2D& trans);
 
 private:
+	GGScene* scene;
 	cpSpace* world;
 };
 

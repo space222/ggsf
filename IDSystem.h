@@ -6,7 +6,7 @@ struct EntityID
 	std::string id;
 };
 
-class TagSystem : public SystemInterface
+class IDSystem : public SystemInterface
 {
 public:
 	virtual void register_components(GGScene* scene) override;

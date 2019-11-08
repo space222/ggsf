@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ChipmunkSystem.h"
 #include <chipmunk\chipmunk.h>
+#include <glm/glm.hpp>
 
 void update_body(cpBody* body, GGScene* scene)
 {   // passed as the iterator function to cpSpaceEachBody
@@ -8,15 +9,27 @@ void update_body(cpBody* body, GGScene* scene)
 	entt::entity E = (entt::entity)(u64)ud;
 	cpVect p = cpBodyGetPosition(body);
 	float angle =(float) cpBodyGetAngle(body);
-	Transform2D t((float)p.x, (float)p.y, angle);
+	Transform2D t((float)p.x, (float)p.y, angle * (180.0/3.1415926));
 	scene->entities.assign_or_replace<Transform2D>(E, t);
 	return;
 }
 
 void ChipmunkSystem::update(GGScene* scene)
 {
-	cpSpaceStep(world, 1.0f / 60.0f);
-	cpSpaceEachBody(world,(cpSpaceBodyIteratorFunc) update_body, (void*)scene);
+	step += scene->last_frame_time;
+	if (step > std::chrono::milliseconds(100))
+	{
+		step = std::chrono::milliseconds(0);
+		cpSpaceStep(world, 1.0f / 60.0f);
+		cpSpaceEachBody(world, (cpSpaceBodyIteratorFunc)update_body, (void*)scene);
+	}
+	while(step >= std::chrono::milliseconds(16) )
+	{
+		cpSpaceStep(world, 1.0f / 60.0f);
+		cpSpaceEachBody(world, (cpSpaceBodyIteratorFunc)update_body, (void*)scene);
+		step -= std::chrono::milliseconds(16);
+	}
+	
 	return;
 }
 
@@ -27,8 +40,9 @@ ChipmunkSystem::ChipmunkSystem()
 	return;
 }
 
-void ChipmunkSystem::register_components(GGScene* scene)
+void ChipmunkSystem::register_components(GGScene* scen)
 {
+	scene = scen;
 	scene->components.insert(std::make_pair("physics2d", new Physics2DComponent(this)));
 	return;
 }
@@ -97,7 +111,7 @@ bool Physics2DComponent::create_instance(GGScene* scene, entt::entity E, nlohman
 		Transform2D t;
 		if (scene->entities.has<Transform2D>(E)) t = scene->entities.get<Transform2D>(E);
 		cpBodySetPosition(body, cpVect{ t.x, t.y });
-		cpBodySetAngle(body, t.angle);
+		cpBodySetAngle(body, t.angle * (3.1415926/180.0));
 	}
 
 	for (int i = 0; i < segments.size() / 6; ++i)
@@ -133,5 +147,29 @@ SystemInterface* ChipmunkSystem_factory()
 {
 	return new ChipmunkSystem;
 }
+
+void ChipmunkSystem::addVelocity(entt::entity E, const cpVect& vel)
+{
+	cpBody* body = get_member_or(scene->entities, E, &Phys2D::body, (cpBody*)nullptr);
+	if (!body) return;
+	cpBodySetVelocity(body, cpBodyGetVelocity(body) + vel);
+	return;
+}
+
+void ChipmunkSystem::init_scripting(GGScene* scene)
+{
+	auto& lua = scene->lua;
+
+	lua.new_usertype<glm::vec2>("vec2", sol::constructors<glm::vec2(), glm::vec2(float,float)>()
+		, "x", &glm::vec2::x, "y", &glm::vec2::y);
+	
+	lua.set_function("phys2d_add_velocity", [=](entt::entity E, const glm::vec2& vel) {
+		this->addVelocity(E, cpVect{vel.x, vel.y});
+		return;
+		});
+
+	return;
+}
+
 
 REGISTER_SYSTEM(Chipmunk)

@@ -288,6 +288,9 @@ entt::entity GGScene::getEntity(const std::string& id, int index)
 
 void GGScene::begin()
 {
+	stamp = std::chrono::system_clock::now();
+	last_frame_time = std::chrono::milliseconds(0);
+
 	sol::function bf = lua["begin"];
 	if (bf.valid())
 	{
@@ -303,6 +306,10 @@ void GGScene::begin()
 
 void GGScene::update()
 {
+	auto stamp2 = std::chrono::system_clock::now();
+	last_frame_time = stamp2 - stamp;
+	stamp = stamp2;
+
 	sol::function uf = lua["update"];
 	if (uf.valid())
 	{

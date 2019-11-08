@@ -1,15 +1,15 @@
 #include "pch.h"
-#include "TagSystem.h"
+#include "IDSystem.h"
 
-void TagSystem::register_components(GGScene* scene)
+void IDSystem::register_components(GGScene* scene)
 {
 	scene->components.insert(std::make_pair("id", new IDComponent()));
 	return;
 }
 
-SystemInterface* TagSystem_factory()
+SystemInterface* IDSystem_factory()
 {
-	return new TagSystem;
+	return new IDSystem;
 }
 
 void IDComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
@@ -27,6 +27,6 @@ void IDComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
 	return;
 }
 
-REGISTER_SYSTEM(Tag)
+REGISTER_SYSTEM(ID)
 
 

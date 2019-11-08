@@ -4,6 +4,7 @@
 #include <atomic>
 #include <variant>
 #include <mutex>
+#include <chrono>
 #include <json.hpp>
 #include <entt\entt.hpp>
 #include <sol\sol.hpp>
@@ -39,8 +40,8 @@ class GGScene
 public:
 	static GGScene* loadFile(const std::wstring&, GGLoadProgress*);
 	void addLoadedBytes(int b);
-
 	void async(const std::function<void()>&);
+	std::chrono::duration<float> lastFrameDuration() const { return last_frame_time; }
 
 	entt::entity getEntity(const std::string&, int index = 0);
 	entt::registry entities;
@@ -57,6 +58,9 @@ public:
 
 	sol::state lua;
 
+	std::chrono::system_clock::time_point stamp;
+	std::chrono::duration<float> last_frame_time;
+
 	FileSystem* fsys;
 	GGLoadProgress* load_progress;
 	std::atomic<int> threads;
@@ -67,7 +71,7 @@ public:
 
 	float clearColor[4] = { 0 };
 protected:
-	GGScene() { }
+	GGScene() { stamp = std::chrono::system_clock::now();  }
 
 
 };
@@ -80,6 +84,7 @@ public:
 	virtual void update(GGScene*) {};
 	virtual void render(GGScene*) {};
 	virtual void setting(GGScene*, const std::string&, std::variant<std::string, int, float>) {}
+	virtual void init_scripting(GGScene*) {}
 };
 
 class ComponentInterface
