@@ -118,7 +118,6 @@ bool Physics2DComponent::create_instance(GGScene* scene, entt::entity E, nlohman
 		cpShapeSetFriction(s, circles[i * 5 + 1]);
 	}
 
-	
 	if (type == 0)
 	{
 		cpBodySetUserData(body, (cpDataPointer)E);
