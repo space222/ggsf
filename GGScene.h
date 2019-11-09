@@ -15,6 +15,12 @@ class SoundItem;
 class SystemInterface;
 class ComponentInterface;
 
+struct GGEntity
+{
+	entt::registry* reg;
+	entt::entity E;
+};
+
 struct GGLoadProgress
 {
 	std::atomic<int> Loaded{ 0 };

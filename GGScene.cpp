@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include "TagSystem.h"
+#include "IDSystem.h"
 #include "Render2DSystem.h"
 
 using json = nlohmann::json;
@@ -250,6 +250,34 @@ GGScene* GGScene::loadFile(const std::wstring& fname, GGLoadProgress* LP)
 
 	while (scene->threads.load()) std::this_thread::sleep_for(std::chrono::milliseconds(30));
 
+	auto& lua = scene->lua;
+
+	sol::constructors<glm::vec2(), glm::vec2(float, float)> ctors;
+
+	auto ut = lua.new_usertype<glm::vec2>("vec2", ctors);
+	ut["x"] = &glm::vec2::x;
+	ut["y"] = &glm::vec2::y;
+	ut["debug_out"] = [=](glm::vec2& v)
+	{
+		std::string a = std::to_string(v.x) + ", " + std::to_string(v.y) + '\n';
+		OutputDebugStringA(a.c_str());
+	};
+
+	lua.new_usertype<GGEntity>("Entity");
+
+	lua.set_function("findEntity", [=](const std::string& name) -> sol::object {
+		auto iter = scene->entity_id.find(name);
+		if (iter == scene->entity_id.end())
+		{
+			return sol::nil;
+		}
+		return sol::make_object(scene->lua, GGEntity{ &scene->entities, iter->second[0] } );
+		});
+
+
+
+
+
 	return scene;
 }
 
@@ -290,6 +318,11 @@ void GGScene::begin()
 {
 	stamp = std::chrono::system_clock::now();
 	last_frame_time = std::chrono::milliseconds(0);
+
+	for (auto p : systems)
+	{
+		p.second->init_scripting(this);
+	}
 
 	sol::function bf = lua["begin"];
 	if (bf.valid())

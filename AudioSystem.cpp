@@ -3,6 +3,8 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <entt/entt.hpp>
+#include "entt_extra.h"
 #include "AudioSystem.h"
 #include "SoundItem.h"
 #include "GlobalX.h"
@@ -69,6 +71,18 @@ void SoundComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
 				});
 		}
 	}
+	return;
+}
+
+void AudioSystem::init_scripting(GGScene* scene)
+{
+	auto& lua = scene->lua;
+
+	lua.set_function("playEffect", [=](GGEntity* ent) {
+		if (!ent) return;
+		SoundItem* SI = get_member_or(*ent->reg, ent->E, &SoundSource::item, (SoundItem*)nullptr);
+		Audio::playEffect(SI);
+		});
 	return;
 }
 

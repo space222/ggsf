@@ -62,6 +62,7 @@ public:
 	Render2DSystem();
 	virtual void register_components(GGScene* scene) override;
 	virtual void render(GGScene* scene) override;
+	virtual void init_scripting(GGScene* scene) override;
 
 	Shader* basic2d;
 	Shader* geom2d_circle;

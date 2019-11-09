@@ -21,9 +21,6 @@ public:
 	//virtual void begin(GGScene*) override;
 	cpSpace* space() const { return world; }
 
-	void addVelocity(entt::entity E, const cpVect& vel);
-	void setTransform(entt::entity E, const Transform2D& trans);
-
 private:
 	GGScene* scene;
 	cpSpace* world;

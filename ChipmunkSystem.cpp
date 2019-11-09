@@ -148,11 +148,21 @@ SystemInterface* ChipmunkSystem_factory()
 	return new ChipmunkSystem;
 }
 
-void ChipmunkSystem::addVelocity(entt::entity E, const cpVect& vel)
+void ggentity_addVelocity(GGEntity* ent, const glm::vec2& vel)
 {
-	cpBody* body = get_member_or(scene->entities, E, &Phys2D::body, (cpBody*)nullptr);
+	if (!ent) return;
+	cpBody* body = get_member_or(*ent->reg, ent->E, &Phys2D::body, (cpBody*)nullptr);
 	if (!body) return;
-	cpBodySetVelocity(body, cpBodyGetVelocity(body) + vel);
+	cpBodySetVelocity(body, cpBodyGetVelocity(body) + cpVect{ vel.x,vel.y });
+	return;
+}
+
+void ggentity_setVelocity(GGEntity* ent, const glm::vec2& vel)
+{
+	if (!ent) return;
+	cpBody* body = get_member_or(*ent->reg, ent->E, &Phys2D::body, (cpBody*)nullptr);
+	if (!body) return;
+	cpBodySetVelocity(body, cpVect{ vel.x,vel.y });
 	return;
 }
 
@@ -160,13 +170,8 @@ void ChipmunkSystem::init_scripting(GGScene* scene)
 {
 	auto& lua = scene->lua;
 
-	lua.new_usertype<glm::vec2>("vec2", sol::constructors<glm::vec2(), glm::vec2(float,float)>()
-		, "x", &glm::vec2::x, "y", &glm::vec2::y);
-	
-	lua.set_function("phys2d_add_velocity", [=](entt::entity E, const glm::vec2& vel) {
-		this->addVelocity(E, cpVect{vel.x, vel.y});
-		return;
-		});
+	lua["Entity"]["setVelocity"] = ggentity_setVelocity;
+	lua["Entity"]["addVelocity"] = ggentity_addVelocity;
 
 	return;
 }

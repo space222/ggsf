@@ -293,6 +293,29 @@ void ZIndexComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
 	return;
 }
 
+void Render2DSystem::init_scripting(GGScene* scene)
+{
+	auto& lua = scene->lua;
+
+	lua.new_usertype<Transform2D>("Transform2D","x", &Transform2D::x, 
+												"y", &Transform2D::y, 
+												"angle", &Transform2D::angle);
+
+	lua["Entity"]["getTransform"] = [=](GGEntity* E) -> sol::object {
+		if (!E) return sol::nil;
+		Transform2D* t = E->reg->try_get<Transform2D>(E->E);
+		if (!t) return sol::nil;
+		return sol::make_object(scene->lua, *t);
+		};
+
+	lua["Entity"]["setTransform"] = [=](GGEntity* ent, Transform2D* tran) {
+		if (!ent || !tran) return;
+		Transform2D* t = ent->reg->try_get<Transform2D>(ent->E);
+		if (t) *t = *tran;
+		};
+
+	return;
+}
 
 
 REGISTER_SYSTEM(Render2D)
