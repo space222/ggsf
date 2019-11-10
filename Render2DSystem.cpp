@@ -38,14 +38,64 @@ struct CBuffer
 };
 #pragma pack(pop)
 
+Texture* resolve_img(GGScene* scene, Texture*& tex,const std::string& id)
+{
+	if (tex) return nullptr;
+	entt::entity E = scene->getEntity(id);
+	if (E == entt::null || !scene->entities.has<Image2D>(E) ) return nullptr;
+	return tex = scene->entities.get<Image2D>(E).tex;
+}
+
+
 void Render2DSystem::render(GGScene* scene)
 {
 	std::vector<RJob> jobs;
 
-	auto view = scene->entities.view<ImageRef>();
+	float factor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	GlobalX::getContext()->OMSetBlendState(blend.get(), factor, 0xffffffff);
+
+	auto anims = scene->entities.view<Anim2D_ref, Transform2D>();
+	for (entt::entity E : anims)
+	{
+		Anim2D_ref ref = scene->entities.get<Anim2D_ref>(E);
+		if (!ref.playing) continue;
+		if (ref.anim == nullptr)
+		{
+			entt::entity ad = scene->getEntity(ref.id);
+			if (ad == entt::null || !scene->entities.has<Anim2D>(ad) ) continue;
+			ref.anim = get_member_or(scene->entities, ad, &Anim2D::anim, (Anim2D_data*)nullptr);
+			if (!ref.anim) continue;
+		}
+		if (ref.anim->tex == nullptr)
+		{
+			resolve_img(scene, ref.anim->tex, ref.anim->tex_id);
+			if (!ref.anim->tex) continue;
+		}
+
+		ref.time += scene->lastFrameDuration();
+		auto frame_span = std::chrono::milliseconds((int)(1000.0f / ref.anim->fps));
+		if (ref.time > frame_span)
+		{
+			ref.time -= frame_span;
+			ref.current_frame++;
+			ref.current_frame %= ref.anim->num_frames;
+		}
+
+		int z = get_member_or(scene->entities, E, &ZIndex::z, 0);
+		const Transform2D& trans = scene->entities.get<Transform2D>(E);
+
+		float X = ref.anim->first.x + ref.anim->first.width * ref.current_frame;
+		
+		jobs.emplace_back(z, ref.anim->tex, trans.angle,
+			glm::vec4(trans.x, trans.y, ref.anim->first.width, ref.anim->first.height),
+			glm::vec4(X, ref.anim->first.y, ref.anim->first.width, ref.anim->first.height));
+		jobs.back().type = 0;
+	}
+
+	auto view = scene->entities.view<ImageRef, Transform2D>();
 	for (entt::entity E : view)
 	{
-		if (!scene->entities.has<Transform2D>(E)) continue;
+		//if (!scene->entities.has<Transform2D>(E)) continue;
 		Texture* tex = nullptr;
 
 		ImageRef& ref = scene->entities.get<ImageRef>(E);
@@ -53,12 +103,7 @@ void Render2DSystem::render(GGScene* scene)
 		{
 			tex = ref.tex;
 		} else {
-			entt::entity img = scene->getEntity(ref.id);
-			if (img == entt::null || !scene->entities.has<Image2D>(img))
-			{
-				continue;
-			}
-			ref.tex = tex = scene->entities.get<Image2D>(img).tex;
+			tex = resolve_img(scene, ref.tex, ref.id);
 		}
 		if (!tex) continue;
 
@@ -164,6 +209,19 @@ Render2DSystem::Render2DSystem()
 
 	persp = glm::ortho<float>(0.0f, GlobalX::screenWidth(), GlobalX::screenHeight(), 0.0f);
 
+	D3D11_BLEND_DESC bldesc;
+	ZeroMemory(&bldesc, sizeof(bldesc));
+	bldesc.AlphaToCoverageEnable = true;
+	bldesc.RenderTarget[0].BlendEnable = true;
+	bldesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	bldesc.RenderTarget[0].SrcBlend = D3D11_BLEND::D3D11_BLEND_ONE;
+	bldesc.RenderTarget[0].DestBlend = D3D11_BLEND::D3D11_BLEND_INV_SRC_ALPHA;
+	bldesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP::D3D11_BLEND_OP_ADD;
+	bldesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND::D3D11_BLEND_SRC_ALPHA;
+	bldesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND::D3D11_BLEND_ZERO;
+	bldesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP::D3D11_BLEND_OP_ADD;
+	GlobalX::getDevice()->CreateBlendState(&bldesc, blend.put());
+
 	return;
 }
 
@@ -171,6 +229,9 @@ void Render2DSystem::register_components(GGScene* scene)
 {
 	scene->components.insert(std::make_pair("image", new ImageComponent()));
 	scene->components.insert(std::make_pair("image-ref", new ImageRefComponent()));
+	scene->components.insert(std::make_pair("animation2d", new Anim2dComponent()));
+	scene->components.insert(std::make_pair("anim2d-ref", new Anim2dRefComponent()));
+
 	scene->components.insert(std::make_pair("geometry2d", new Geom2dComponent()));
 
 	scene->components.insert(std::make_pair("z-index", new ZIndexComponent()));
@@ -180,6 +241,36 @@ void Render2DSystem::register_components(GGScene* scene)
 SystemInterface* Render2DSystem_factory()
 {
 	return new Render2DSystem;
+}
+
+void Anim2dComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
+{
+	if (!J.contains("image-id") || !J["image-id"].is_string() || !J.contains("crop")) return; //todo:log error
+
+	Anim2D_data* ptr = new Anim2D_data;
+	Anim2D_data& dat = *ptr;
+
+	dat.tex_id = J["image-id"].get<std::string>();
+	
+	std::vector<int> cr = J["crop"].get<std::vector<int>>();
+	dat.first = GGRect{ cr[0], cr[1], cr[2], cr[3] };
+	
+	dat.fps = J["fps"].get<int>();
+	dat.num_frames = J["num-frames"].get<int>();
+	
+	scene->entities.assign<Anim2D>(E, ptr);
+	return;
+}
+
+void Anim2dRefComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
+{
+	Anim2D_ref ref;
+
+	ref.id = J["id"].get<std::string>();
+	ref.current_frame = 0;
+	ref.playing = true;
+
+	return;
 }
 
 void ImageRefComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)

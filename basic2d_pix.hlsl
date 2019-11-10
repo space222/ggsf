@@ -17,5 +17,7 @@ SamplerState sampler1;
 
 float4 main(VOUT coord) : SV_TARGET
 {
-	return shaderTexture.Sample(sampler1, coord.tex);
+	float4 retval = shaderTexture.Sample(sampler1, coord.tex);
+	if (retval.a < 0.05) discard;
+	return retval;
 }

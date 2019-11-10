@@ -24,7 +24,7 @@ struct Anim2D_ref
 	std::string id;
 	Anim2D_data* anim;
 	int current_frame;
-	std::chrono::system_clock::time_point stamp;
+	std::chrono::duration<float> time;
 	bool playing;
 };
 
@@ -68,6 +68,7 @@ public:
 	Shader* geom2d_circle;
 	Buffer* basic2d_verts;
 	Buffer* basic2d_consts;
+	winrt::com_ptr<ID3D11BlendState> blend;
 	glm::mat4 persp;
 private:
 
@@ -92,6 +93,18 @@ public:
 };
 
 class ZIndexComponent : public ComponentInterface
+{
+public:
+	virtual void add(GGScene*, entt::entity, nlohmann::json&) override;
+};
+
+class Anim2dComponent : public ComponentInterface
+{
+public:
+	virtual void add(GGScene*, entt::entity, nlohmann::json&) override;
+};
+
+class Anim2dRefComponent : public ComponentInterface
 {
 public:
 	virtual void add(GGScene*, entt::entity, nlohmann::json&) override;
