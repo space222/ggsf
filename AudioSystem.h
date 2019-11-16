@@ -23,7 +23,7 @@ public:
 class SoundComponent : public ComponentInterface
 {
 public:
-	virtual void add(GGScene*, entt::entity E, nlohmann::json& J) override;
+	virtual void add(GGScene*, entt::registry&, entt::entity E, nlohmann::json& J) override;
 	//virtual bool create_instance(GGScene*, entt::entity, nlohmann::json& J) override;
 };
 

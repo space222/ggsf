@@ -58,11 +58,11 @@ GGScene* GGScene::loadFile(const std::wstring& fname, GGLoadProgress* LP)
 
 	if (settings.contains("script-file") && settings["script-file"].is_string())
 	{
-		std::string fname = settings["script-file"];
+		std::string sfname = settings["script-file"];
 		std::vector<char> data;
 		{
 			std::unique_ptr<FileSystem> fs(scene->fsys->clone());
-			std::unique_ptr<FileResource> fr(fs->open(fname));
+			std::unique_ptr<FileResource> fr(fs->open(sfname));
 			if( fr ) data = std::move(fr->read_all());
 		}
 		if (data.size())
@@ -210,43 +210,48 @@ GGScene* GGScene::loadFile(const std::wstring& fname, GGLoadProgress* LP)
 			auto iter = scene->components.find(cname);
 			if (iter == scene->components.end()) continue; //todo: log error
 			ComponentInterface* CI = iter->second;
-			CI->add(scene, ent, C.value());
+			CI->add(scene, scene->entities, ent, C.value());
 			interfaces.emplace_back(C.value(), CI);
 		}
 
-		if (E.contains("Transform2D"))
+		if (E.contains("Transform2D") && E["Transform2D"].is_array())
 		{
 			json trans = E["Transform2D"];
-			if (trans.is_array())
+			const std::vector<float>& fdata = trans.get<std::vector<float> >();
+			for (int i = 0; i < fdata.size() / 3; ++i)
 			{
-				const std::vector<float>& fdata = trans.get<std::vector<float> >();
-				for (int i = 0; i < fdata.size() / 3; ++i)
+				entt::entity instance;
+				if (i == 0)
+					instance = ent;
+				else
+					instance = scene->entities.create(ent, scene->entities);
+
+				scene->entities.assign_or_replace<Transform2D>(instance, fdata[i * 3], fdata[i * 3 + 1], fdata[i * 3 + 2]);
+
+				for (auto P : interfaces)
 				{
-					entt::entity instance;
-					if (i == 0)
-						instance = ent;
-					else
-						instance = scene->entities.create(ent, scene->entities);
-
-					scene->entities.assign_or_replace<Transform2D>(instance, fdata[i * 3], fdata[i * 3 + 1], fdata[i * 3 + 2]);
-
-					for (auto P : interfaces)
-					{
-						P.second->create_instance(scene, instance, P.first);
-					}
-					
-					//OutputDebugStringA("\n\nGOT TRANSFORMED!\n\n");
-					if (i && scene->entities.has<EntityID>(instance))
-					{
-						std::string Id = scene->entities.get<EntityID>(instance).id;
-						scene->entity_id.find(Id)->second.push_back(instance);
-					}
+					P.second->create_instance(scene, scene->entities, instance, P.first);
 				}
-			} else {
-				//todo: log error
+
+				//OutputDebugStringA("\n\nGOT TRANSFORMED!\n\n");
+				if (i && scene->entities.has<EntityID>(instance))
+				{
+					std::string Id = scene->entities.get<EntityID>(instance).id;
+					scene->entity_id.find(Id)->second.push_back(instance);
+				}
+			}
+		} else {
+			// json entity has no Transform2D,
+			// but still need to call create_instance once.
+			// system and components will need to not depend on
+			// a component having a Transform2D in create_instance
+			
+			for (auto P : interfaces)
+			{
+				P.second->create_instance(scene, scene->entities, ent, P.first);
 			}
 		}
-	}
+	} //end of entities loop
 
 	while (scene->threads.load()) std::this_thread::sleep_for(std::chrono::milliseconds(30));
 

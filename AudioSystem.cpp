@@ -38,7 +38,7 @@ void AudioSystem::begin(GGScene* scene)
 	return;
 }
 
-void SoundComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
+void SoundComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, nlohmann::json& J)
 {
 	if (J.is_string())
 	{
@@ -51,18 +51,19 @@ void SoundComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
 			scene->resource_lock.unlock();
 			if (std::holds_alternative<SoundItem*>(vari))
 			{
-				scene->entities.assign<SoundSource>(E, std::get<SoundItem*>(vari));
+				reg.assign<SoundSource>(E, std::get<SoundItem*>(vari));
 			}
 		}
 		else {
 			SoundItem* si = new SoundItem;
 			iter.first->second = si;
 			scene->resource_lock.unlock();
+			entt::registry* R = &reg;
 			scene->async([=] {
 				bool res = si->loadFile(scene, fname);
 				if (res)
 				{
-					scene->entities.assign<SoundSource>(E, si);
+					R->assign<SoundSource>(E, si);
 				} else {
 					delete si;
 				}

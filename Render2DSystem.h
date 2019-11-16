@@ -70,6 +70,7 @@ public:
 	Buffer* basic2d_consts;
 	winrt::com_ptr<ID3D11BlendState> blend;
 	glm::mat4 persp;
+	glm::vec2 camera_pos = glm::vec2(0.f,0.f);
 private:
 
 };
@@ -77,36 +78,36 @@ private:
 class ImageComponent : public ComponentInterface
 {
 public:
-	virtual void add(GGScene*, entt::entity, nlohmann::json&) override;
+	virtual void add(GGScene*, entt::registry&, entt::entity, nlohmann::json&) override;
 };
 
 class ImageRefComponent : public ComponentInterface
 {
 public:
-	virtual void add(GGScene*, entt::entity, nlohmann::json&) override;
+	virtual void add(GGScene*, entt::registry&, entt::entity, nlohmann::json&) override;
 };
 
 class Geom2dComponent : public ComponentInterface
 {
 public:
-	virtual void add(GGScene*, entt::entity, nlohmann::json&) override;
+	virtual void add(GGScene*, entt::registry&, entt::entity, nlohmann::json&) override;
 };
 
 class ZIndexComponent : public ComponentInterface
 {
 public:
-	virtual void add(GGScene*, entt::entity, nlohmann::json&) override;
+	virtual void add(GGScene*, entt::registry&, entt::entity, nlohmann::json&) override;
 };
 
 class Anim2dComponent : public ComponentInterface
 {
 public:
-	virtual void add(GGScene*, entt::entity, nlohmann::json&) override;
+	virtual void add(GGScene*, entt::registry&, entt::entity, nlohmann::json&) override;
 };
 
 class Anim2dRefComponent : public ComponentInterface
 {
 public:
-	virtual void add(GGScene*, entt::entity, nlohmann::json&) override;
+	virtual void add(GGScene*, entt::registry&, entt::entity, nlohmann::json&) override;
 };
 

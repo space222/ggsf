@@ -47,7 +47,7 @@ void ChipmunkSystem::register_components(GGScene* scen)
 	return;
 }
 
-bool Physics2DComponent::create_instance(GGScene* scene, entt::entity E, nlohmann::json& J)
+bool Physics2DComponent::create_instance(GGScene* scene, entt::registry& reg, entt::entity E, nlohmann::json& J)
 {
 	int type = 0; //default dynamic
 	cpBody* body = nullptr;
@@ -109,7 +109,7 @@ bool Physics2DComponent::create_instance(GGScene* scene, entt::entity E, nlohman
 		body = cpBodyNew(mass, moment);
 		cpSpaceAddBody(chip->space(), body);
 		Transform2D t;
-		if (scene->entities.has<Transform2D>(E)) t = scene->entities.get<Transform2D>(E);
+		if (reg.has<Transform2D>(E)) t = reg.get<Transform2D>(E);
 		cpBodySetPosition(body, cpVect{ t.x, t.y });
 		cpBodySetAngle(body, t.angle * (3.1415926/180.0));
 	}
@@ -135,7 +135,7 @@ bool Physics2DComponent::create_instance(GGScene* scene, entt::entity E, nlohman
 	if (type == 0)
 	{
 		cpBodySetUserData(body, (cpDataPointer)E);
-		scene->entities.assign_or_replace<Phys2D>(E, body);
+		reg.assign_or_replace<Phys2D>(E, body);
 	} else {
 		// nothing for static items currently
 	}

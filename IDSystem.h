@@ -6,6 +6,11 @@ struct EntityID
 	std::string id;
 };
 
+struct TemplateID
+{
+	std::string id;
+};
+
 class IDSystem : public SystemInterface
 {
 public:
@@ -15,6 +20,11 @@ public:
 class IDComponent : public ComponentInterface
 {
 public:
-	virtual void add(GGScene*, entt::entity, nlohmann::json&) override;
+	virtual void add(GGScene*, entt::registry&, entt::entity, nlohmann::json&) override;
 };
 
+class TemplateIDComponent : public ComponentInterface
+{
+public:
+	virtual void add(GGScene*, entt::registry&, entt::entity, nlohmann::json&) override;
+};

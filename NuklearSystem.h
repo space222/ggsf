@@ -43,7 +43,7 @@ class NuklearUIComponent : public ComponentInterface
 {
 public:
 	NuklearUIComponent(NuklearSystem* sys) : system(sys) {}
-	virtual void add(GGScene* scene, entt::entity E, nlohmann::json& J) override;
+	virtual void add(GGScene* scene, entt::registry& reg, entt::entity E, nlohmann::json& J) override;
 private:
 	NuklearSystem* system;
 };

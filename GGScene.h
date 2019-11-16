@@ -51,7 +51,9 @@ public:
 
 	entt::entity getEntity(const std::string&, int index = 0);
 	entt::registry entities;
+	entt::registry templates;
 	std::unordered_map<std::string, std::vector<entt::entity> > entity_id;
+	std::unordered_map<std::string, entt::entity> template_id;
 
 	std::mutex resource_lock;
 	std::unordered_map<std::string, std::variant<SoundItem*, Texture*>> resources;
@@ -96,8 +98,8 @@ public:
 class ComponentInterface
 {
 public:
-	virtual void add(GGScene*, entt::entity, nlohmann::json&) {}
-	virtual bool create_instance(GGScene*, entt::entity, nlohmann::json&) { return false; }
+	virtual void add(GGScene*, entt::registry&, entt::entity, nlohmann::json&) {}
+	virtual bool create_instance(GGScene*, entt::registry&, entt::entity, nlohmann::json&) { return false; }
 };
 
 using system_factory_fn = SystemInterface * (*)();

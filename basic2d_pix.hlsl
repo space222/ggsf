@@ -3,7 +3,7 @@ cbuffer data : register(b0)
 {
 	float4x4 persp;
 	float4 campos;
-	float4 recpos, crop, e3;
+	float4 recpos, crop, dim;
 };
 
 struct VOUT

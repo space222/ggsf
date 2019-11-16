@@ -24,8 +24,7 @@ struct RJob
 	int type;
 	int z;
 	Texture* tex;
-	glm::vec4 isize;
-	glm::vec4 crop;
+	glm::vec4 isize, crop;
 	float angle;
 };
 
@@ -57,8 +56,8 @@ void Render2DSystem::render(GGScene* scene)
 	auto anims = scene->entities.view<Anim2D_ref, Transform2D>();
 	for (entt::entity E : anims)
 	{
-		Anim2D_ref ref = scene->entities.get<Anim2D_ref>(E);
-		if (!ref.playing) continue;
+		Anim2D_ref& ref = scene->entities.get<Anim2D_ref>(E);
+//		if (!ref.playing) continue;
 		if (ref.anim == nullptr)
 		{
 			entt::entity ad = scene->getEntity(ref.id);
@@ -74,11 +73,11 @@ void Render2DSystem::render(GGScene* scene)
 
 		ref.time += scene->lastFrameDuration();
 		auto frame_span = std::chrono::milliseconds((int)(1000.0f / ref.anim->fps));
-		if (ref.time > frame_span)
+		if (ref.time >= frame_span)
 		{
 			ref.time -= frame_span;
 			ref.current_frame++;
-			ref.current_frame %= ref.anim->num_frames;
+			if (ref.current_frame >= ref.anim->num_frames) ref.current_frame = 0;
 		}
 
 		int z = get_member_or(scene->entities, E, &ZIndex::z, 0);
@@ -124,16 +123,13 @@ void Render2DSystem::render(GGScene* scene)
 		jobs.back().type = 0;
 	}
 
-	auto gview = scene->entities.view<Geom2d>();
+	auto gview = scene->entities.view<Geom2d, Transform2D>();
 	for (entt::entity E : gview)
 	{
-		if (!scene->entities.has<Transform2D>(E)) continue;
-
 		const Transform2D trans = scene->entities.get<Transform2D>(E);
 		const Geom2d geom = scene->entities.get<Geom2d>(E);
 		const int zindex = get_member_or(scene->entities, E, &ZIndex::z, 0);
-		//if (scene->entities.has<ZIndex>(E)) zindex = scene->entities.get<ZIndex>(E).z;
-
+		
 		jobs.emplace_back(zindex, nullptr, 0.0f,
 			glm::vec4(trans.x - geom.extents.x, trans.y - geom.extents.x, geom.extents.x*2, geom.extents.x*2),
 			geom.color);
@@ -151,10 +147,10 @@ void Render2DSystem::render(GGScene* scene)
 		GlobalX::getContext()->Map(reinterpret_cast<ID3D11Resource*>(basic2d_consts->get()), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapres);
 		CBuffer* cb = (CBuffer*)mapres.pData;
 		cb->persp = persp;
-		cb->campos = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+		cb->campos = glm::vec4(camera_pos.x,camera_pos.y,0,0);
 		cb->recpos = job.isize;
 		cb->crop = job.crop;
-		cb->e1 = glm::vec4(job.angle * (3.14159f / 180.0f), 0.0f, (job.tex ? job.tex->width() : 0.0f), (job.tex ? job.tex->height() : 0.0f));
+		cb->e1 = glm::vec4(job.angle * (3.14159f / 180.0f), (job.type > 0 ? 1 : 0), (job.tex ? job.tex->width() : job.isize.b), (job.tex ? job.tex->height() : job.isize.a));
 		GlobalX::getContext()->Unmap(reinterpret_cast<ID3D11Resource*>(basic2d_consts->get()), 0);
 		
 		ID3D11Buffer* c1 = basic2d_consts->get();
@@ -243,7 +239,7 @@ SystemInterface* Render2DSystem_factory()
 	return new Render2DSystem;
 }
 
-void Anim2dComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
+void Anim2dComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, nlohmann::json& J)
 {
 	if (!J.contains("image-id") || !J["image-id"].is_string() || !J.contains("crop")) return; //todo:log error
 
@@ -251,29 +247,34 @@ void Anim2dComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
 	Anim2D_data& dat = *ptr;
 
 	dat.tex_id = J["image-id"].get<std::string>();
-	
+	dat.tex = nullptr;
+
 	std::vector<int> cr = J["crop"].get<std::vector<int>>();
 	dat.first = GGRect{ cr[0], cr[1], cr[2], cr[3] };
 	
 	dat.fps = J["fps"].get<int>();
 	dat.num_frames = J["num-frames"].get<int>();
-	
-	scene->entities.assign<Anim2D>(E, ptr);
+
+	reg.assign<Anim2D>(E, ptr);
 	return;
 }
 
-void Anim2dRefComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
+void Anim2dRefComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, nlohmann::json& J)
 {
 	Anim2D_ref ref;
 
 	ref.id = J["id"].get<std::string>();
 	ref.current_frame = 0;
 	ref.playing = true;
+	ref.anim = nullptr;
+	ref.time = std::chrono::milliseconds(0);
 
+	reg.assign<Anim2D_ref>(E, ref);
+	
 	return;
 }
 
-void ImageRefComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
+void ImageRefComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, nlohmann::json& J)
 {
 	std::string id;
 	int x=0, y = 0, width = 0, height = 0;
@@ -293,12 +294,12 @@ void ImageRefComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
 		id = J["id"].get<std::string>();
 	}
 
-	scene->entities.assign<ImageRef>(E, ImageRef{ id, nullptr, c, x, y, width, height });
+	reg.assign<ImageRef>(E, ImageRef{ id, nullptr, c, x, y, width, height });
 
 	return;
 }
 
-void ImageComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
+void ImageComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, nlohmann::json& J)
 {
 	if (!J.is_string()) return;
 	std::string fname = J.get<std::string>();
@@ -322,7 +323,7 @@ void ImageComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
 		Texture* text = new Texture;
 		iter.first->second = text;
 		scene->resource_lock.unlock();
-		scene->entities.assign<Image2D>(E, text);
+		reg.assign<Image2D>(E, text);
 		scene->async([=] {
 			text->loadFile(scene, fname);
 			scene->threads--;
@@ -333,7 +334,7 @@ void ImageComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
 	return;
 }
 
-void Geom2dComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
+void Geom2dComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, nlohmann::json& J)
 {
 	Geom2d G;
 	G.type = 0;
@@ -366,12 +367,12 @@ void Geom2dComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
 		if (c.size() >= 4) G.color.a = c[3];
 	}
 
-	if( G.type ) scene->entities.assign<Geom2d>(E, G);
+	if( G.type ) reg.assign<Geom2d>(E, G);
 
 	return;
 }
 
-void ZIndexComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
+void ZIndexComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, nlohmann::json& J)
 {
 	int z = 0;
 	if (J.is_number())
@@ -379,7 +380,7 @@ void ZIndexComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
 		z = J.get<int>();
 	}
 
-	scene->entities.assign<ZIndex>(E, z);
+	reg.assign<ZIndex>(E, z);
 
 	return;
 }
@@ -387,6 +388,9 @@ void ZIndexComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
 void Render2DSystem::init_scripting(GGScene* scene)
 {
 	auto& lua = scene->lua;
+
+	lua.create_table("Render2D")["setCamera"]
+		= [=](const glm::vec2& pos) { this->camera_pos = pos; return; };
 
 	lua.new_usertype<Transform2D>("Transform2D","x", &Transform2D::x, 
 												"y", &Transform2D::y, 

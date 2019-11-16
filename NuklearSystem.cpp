@@ -127,7 +127,7 @@ SystemInterface* NuklearSystem_factory()
 	return new NuklearSystem;
 }
 
-void NuklearUIComponent::add(GGScene* scene, entt::entity E, nlohmann::json& J)
+void NuklearUIComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, nlohmann::json& J)
 {
 	NuklearWindow win;
 

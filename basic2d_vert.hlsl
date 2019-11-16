@@ -3,7 +3,7 @@ cbuffer data : register(b0)
 {
 	float4x4 persp;
 	float4 campos;
-	float4 recpos, crop, e1;
+	float4 recpos, crop, dim;
 };
 
 struct VOUT
@@ -15,7 +15,7 @@ struct VOUT
 VOUT main(uint id: SV_VertexID)
 {
 	VOUT retval;
-	float angle = -e1.x;
+	float angle = -dim.x;
 	float cosangle = cos(angle);
 	float sinangle = sin(angle);
 	
@@ -23,29 +23,31 @@ VOUT main(uint id: SV_VertexID)
 	float4 pos = float4(0.0, 0.0, 0.0, 0.0);
 
 	float2 txcrds = float2(0.0, 0.0);
-	float2 ts = float2(e1.b, e1.a);
+	float2 ts = float2(dim.b, dim.a);
+	float4 cr = crop;
+	if (dim.y > 0.5) cr = float4(0, 0, ts.x, ts.y);
 
 	retval.position = float4(0, 0, 0, 1);
 	retval.tex = float2(0, 0);
 
 	switch (id)
-	{	
+	{
 	case 0: //top left
-		retval.tex = float2(0, 0);
+		retval.tex = float2(cr.x/ts.x, cr.y/ts.y);
 		orp = float4(-recpos.b / 2, -recpos.a / 2, 0.0, 1.0);
 		break;
 	case 4:
 	case 1: //top right
-		retval.tex = float2(1, 0);
+		retval.tex = float2((cr.x+cr.b)/ts.x, cr.y/ts.y);
 		orp = float4(recpos.b / 2, -recpos.a / 2, 0.0, 1.0);
 		break;
 	case 3:
 	case 2: //bottom left
-		retval.tex = float2(0, 1);
+		retval.tex = float2(cr.x/ts.x, (cr.y+cr.a)/ts.y);
 		orp = float4(-recpos.b / 2, recpos.a / 2, 0.0, 1.0);
 		break;
 	case 5: //bottom right
-		retval.tex = float2(1, 1);
+		retval.tex = float2((cr.x+cr.b)/ts.x, (cr.y+cr.a)/ts.y);
 		orp = float4(recpos.b / 2, recpos.a / 2, 0.0, 1.0);
 		break;
 	}
@@ -57,13 +59,9 @@ VOUT main(uint id: SV_VertexID)
 		0, 0, 0, 1
 	};
 
-	//retval.position = orp;
-	//retval.position.x = retval.position.x * cosangle - retval.position.y * sinangle;
-	//retval.position.y = retval.position.x * sinangle + retval.position.y * cosangle;
-	//retval.position.xy += recpos.xy + recpos.ba/2;
-	//retval.position = mul(persp, retval.position);
 
 	float4 temp = mul(mTw, orp) + float4(recpos.xy + recpos.ba / 2, 0.0, 0.0);
+	temp -= campos;
 	retval.position = mul(persp, temp);
 
 	return retval;
