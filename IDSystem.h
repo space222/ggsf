@@ -6,11 +6,6 @@ struct EntityID
 	std::string id;
 };
 
-struct TemplateID
-{
-	std::string id;
-};
-
 class IDSystem : public SystemInterface
 {
 public:

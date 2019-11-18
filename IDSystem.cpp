@@ -23,7 +23,7 @@ void IDComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, nlohm
 		//todo: log error
 		return;
 	}
-	scene->entity_id.insert(std::make_pair(ID, std::vector<entt::entity>{ E }));
+	scene->entity_id.insert(std::make_pair(ID, new std::vector<entt::entity>{ E }));
 
 	scene->entities.assign<EntityID>(E, ID);
 	return;
@@ -39,9 +39,10 @@ void TemplateIDComponent::add(GGScene* scene, entt::registry& reg, entt::entity 
 		//todo: log error
 		return;
 	}
-	scene->template_id.insert(std::make_pair(ID, E));
 
-	scene->templates.assign<TemplateID>(E, ID);
+	auto& TI = scene->templates.get<GGTemplateInfo>(E);
+	scene->template_id.insert(std::make_pair(ID, TI.templat));
+	TI.id = ID;
 	return;
 }
 

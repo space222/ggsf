@@ -197,6 +197,34 @@ GGScene* GGScene::loadFile(const std::wstring& fname, GGLoadProgress* LP)
 		return scene;
 	}
 
+	if (jpp.contains("templates") && jpp["templates"].is_array())
+	{
+		json templates = jpp["templates"];
+		for (json& tem1 : templates)
+		{
+			entt::entity etem = scene->templates.create();
+			GGTemplate* ggtemp = new GGTemplate;
+			ggtemp->scene = scene;
+			ggtemp->E = etem;
+			scene->templates.assign<GGTemplateInfo>(etem, GGTemplateInfo{ggtemp, std::string()});
+			//ggtemp->components.reserve(?)
+			for (auto& component : tem1.items())
+			{
+				std::string cname = component.key();
+				if (cname == "Transform2D" || cname == "Transform3D") continue;
+				auto iter = scene->components.find(cname);
+				if (iter == std::end(scene->components))
+				{
+					//log warning or error out?
+					continue;
+				}
+				ComponentInterface* CI = iter->second;
+				CI->add(scene, scene->templates, etem, component.value());
+				ggtemp->components.push_back(CI);
+			}
+		}
+	} //end of building templates
+
 	json entities = jpp["entities"];
 	for (json& E : entities)
 	{
@@ -237,7 +265,7 @@ GGScene* GGScene::loadFile(const std::wstring& fname, GGLoadProgress* LP)
 				if (i && scene->entities.has<EntityID>(instance))
 				{
 					std::string Id = scene->entities.get<EntityID>(instance).id;
-					scene->entity_id.find(Id)->second.push_back(instance);
+					scene->entity_id.find(Id)->second->push_back(instance);
 				}
 			}
 		} else {
@@ -268,7 +296,16 @@ GGScene* GGScene::loadFile(const std::wstring& fname, GGLoadProgress* LP)
 		OutputDebugStringA(a.c_str());
 	};
 
-	lua.new_usertype<GGEntity>("Entity");
+	auto tem = lua.new_usertype<GGTemplate>("Template");
+
+	auto et = lua.new_usertype<GGEntity>("Entity");
+
+	et.set_function("instance", [=](GGEntity* E, sol::object& i) ->sol::object {
+		if (!E || i.get_type() != sol::type::number) return sol::nil;
+		auto b = i.as<int>();
+		if (b >= E->list->size()) return sol::nil;
+		return sol::make_object(scene->lua, GGEntity{ &scene->entities, E->list, (*E->list)[b] });
+		});
 
 	lua.set_function("findEntity", [=](const std::string& name) -> sol::object {
 		auto iter = scene->entity_id.find(name);
@@ -276,12 +313,42 @@ GGScene* GGScene::loadFile(const std::wstring& fname, GGLoadProgress* LP)
 		{
 			return sol::nil;
 		}
-		return sol::make_object(scene->lua, GGEntity{ &scene->entities, iter->second[0] } );
+		return sol::make_object(scene->lua, GGEntity{ &scene->entities, iter->second.get(), (*iter->second)[0] } );
 		});
 
+	lua.set_function("findTemplate", [=](const std::string& name) -> sol::object {
+		auto iter = scene->template_id.find(name);
+		if (iter == scene->template_id.end())
+		{
+			return sol::nil;
+		}
+		return sol::make_object(scene->lua,  iter->second);
+		});
 
-
-
+	tem.set_function("spawnAtWithID", [=](GGTemplate* temp, sol::object& obj, Transform2D& trans) -> sol::object {
+		if (!temp) return sol::nil;
+		entt::entity E = scene->entities.create(temp->E, scene->templates);
+		scene->entities.assign_or_replace<Transform2D>(E, trans);
+		if (obj.get_type() == sol::type::string)
+		{
+			std::string id = obj.as<std::string>();
+			std::vector<entt::entity>* ent_list = nullptr;
+			auto iter = scene->entity_id.find(id);
+			if (iter == std::end(scene->entity_id))
+			{
+				scene->entity_id.insert(std::make_pair(id,ent_list = new std::vector<entt::entity>{ E }));
+			} else {
+				ent_list = iter->second.get();
+				iter->second->push_back(E);
+			}
+			return sol::make_object(scene->lua, GGEntity{ &scene->entities, ent_list, E });
+		} else {
+			GGEntity* ent = obj.as<GGEntity*>();
+			ent->list->push_back(E);
+			return sol::make_object(scene->lua, GGEntity{ &scene->entities, ent->list, E });
+		}
+		return sol::nil;
+		});
 
 	return scene;
 }
@@ -313,7 +380,7 @@ entt::entity GGScene::getEntity(const std::string& id, int index)
 	auto iter = entity_id.find(id);
 	if (iter == std::end(entity_id)) return entt::null;
 
-	std::vector<entt::entity>& ets = iter->second;
+	std::vector<entt::entity>& ets = *iter->second;
 	if (index >= ets.size()) return entt::null;
 
 	return ets[index];

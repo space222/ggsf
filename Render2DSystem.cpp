@@ -113,7 +113,7 @@ void Render2DSystem::render(GGScene* scene)
 		if (ref.crop)
 		{
 			jobs.emplace_back(zindex, tex, trans.angle,
-				glm::vec4(trans.x, trans.y, tex->width(), tex->height()),
+				glm::vec4(trans.x, trans.y, ref.width, ref.height),
 				glm::vec4(ref.x, ref.y, ref.width, ref.height));
 		} else {
 			jobs.emplace_back(zindex, tex, trans.angle, 
@@ -392,9 +392,10 @@ void Render2DSystem::init_scripting(GGScene* scene)
 	lua.create_table("Render2D")["setCamera"]
 		= [=](const glm::vec2& pos) { this->camera_pos = pos; return; };
 
-	lua.new_usertype<Transform2D>("Transform2D","x", &Transform2D::x, 
-												"y", &Transform2D::y, 
-												"angle", &Transform2D::angle);
+	lua.new_usertype<Transform2D>("Transform2D", sol::constructors<Transform2D(), Transform2D(float,float,float)>(),
+						"x", &Transform2D::x, 
+						"y", &Transform2D::y, 
+						"angle", &Transform2D::angle);
 
 	lua["Entity"]["getTransform"] = [=](GGEntity* E) -> sol::object {
 		if (!E) return sol::nil;

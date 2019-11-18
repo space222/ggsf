@@ -14,11 +14,26 @@ class Texture;
 class SoundItem;
 class SystemInterface;
 class ComponentInterface;
+class GGScene;
 
 struct GGEntity
 {
 	entt::registry* reg;
+	std::vector<entt::entity>* list;
 	entt::entity E;
+};
+
+struct GGTemplate
+{
+	GGScene* scene;
+	std::vector<ComponentInterface*> components;
+	entt::entity E;
+};
+
+struct GGTemplateInfo
+{
+	GGTemplate* templat;
+	std::string id;
 };
 
 struct GGLoadProgress
@@ -52,8 +67,8 @@ public:
 	entt::entity getEntity(const std::string&, int index = 0);
 	entt::registry entities;
 	entt::registry templates;
-	std::unordered_map<std::string, std::vector<entt::entity> > entity_id;
-	std::unordered_map<std::string, entt::entity> template_id;
+	std::unordered_map<std::string, std::unique_ptr<std::vector<entt::entity>> > entity_id;
+	std::unordered_map<std::string, GGTemplate*> template_id;
 
 	std::mutex resource_lock;
 	std::unordered_map<std::string, std::variant<SoundItem*, Texture*>> resources;
