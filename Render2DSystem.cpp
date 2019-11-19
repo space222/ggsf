@@ -131,7 +131,7 @@ void Render2DSystem::render(GGScene* scene)
 		const int zindex = get_member_or(scene->entities, E, &ZIndex::z, 0);
 		
 		jobs.emplace_back(zindex, nullptr, 0.0f,
-			glm::vec4(trans.x - geom.extents.x, trans.y - geom.extents.x, geom.extents.x*2, geom.extents.x*2),
+			glm::vec4(trans.x /* - geom.extents.x */, trans.y /* - geom.extents.x */, geom.extents.x*2, geom.extents.x*2),
 			geom.color);
 		jobs.back().type = geom.type;
 	}

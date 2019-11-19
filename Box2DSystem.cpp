@@ -4,13 +4,16 @@
 #include <Box2D/Box2D.h>
 #include "Box2DSystem.h"
 
+const float PI = 3.14159265f;
+
 bool Box2DComponent::create_instance(GGScene*, entt::registry& reg, entt::entity E, nlohmann::json&)
 {
 	B2DPhysics& phys = reg.get<B2DPhysics>(E);
 	Transform2D trans = reg.get<Transform2D>(E);
 	b2BodyDef def;
-	def.angle = trans.angle * (3.141569f / 180);
+	def.angle = trans.angle * (PI / 180.0f);
 	def.position.Set(trans.x / sys->factor(), trans.y / sys->factor());
+	
 	switch (phys.type)
 	{
 	case 0: def.type = b2BodyType::b2_dynamicBody; break;
@@ -24,12 +27,14 @@ bool Box2DComponent::create_instance(GGScene*, entt::registry& reg, entt::entity
 	b2FixtureDef fixdef;
 	for (b2Shape* S : phys.shapes)
 	{
-		fixdef.shape = S;
+		fixdef.shape = S; //S->Clone(&cloneHelper);
 		fixdef.density = 1;
 		fixdef.restitution = phys.restitution;
 		fixdef.friction = phys.friction;
 		phys.body->CreateFixture(&fixdef);
 	}
+
+	//phys.body->SetTransform(def.position, trans.angle * (PI / 180));
 
 	return true;
 }
@@ -41,6 +46,7 @@ void Box2DComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, nl
 	phys.restitution = (J["restitution"].is_number()) ? J["restitution"].get<float>() : 0.3f;
 	phys.mass = (J["mass"].is_number()) ? J["mass"].get<float>() : 1.0f;
 	phys.type = 0;
+	phys.body = nullptr;
 
 	if (J["type"].is_string())
 	{
@@ -50,15 +56,23 @@ void Box2DComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, nl
 		else if (t == "kinematic") phys.type = 2;
 	}
 
-	if (nlohmann::json segs = J["segments"]; segs.is_array())
+	if (nlohmann::json boxes = J["box"]; boxes.is_array())
 	{
-		std::vector<float> sm = segs.get<std::vector<float>>();
-		for_each(std::begin(sm), std::end(sm), [=](float& i) { i /= sys->factor(); });
-		auto* shap = new b2ChainShape;
-		shap->CreateChain((b2Vec2*)sm.data(), sm.size() / 2);
+		std::vector<float> sm = boxes.get<std::vector<float>>();
+		auto* shap = new b2PolygonShape;
+		shap->SetAsBox((sm[0] / 2) / sys->factor(), (sm[1] / 2) / sys->factor());
 		phys.shapes.push_back(shap);
 	}
 
+	if (nlohmann::json pnts = J["polygon"]; pnts.is_array())
+	{
+		std::vector<float> sm = pnts.get<std::vector<float>>();
+		for_each(std::begin(sm), std::end(sm), [=](float& i) { i /= sys->factor(); });
+		auto* shap = new b2PolygonShape;
+		shap->Set((b2Vec2*)sm.data(), sm.size() / 2);
+		phys.shapes.push_back(shap);
+	}
+	
 	if (nlohmann::json circs = J["circles"]; circs.is_array())
 	{
 		std::vector<float> sm = circs.get<std::vector<float>>();
@@ -66,7 +80,7 @@ void Box2DComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, nl
 		for (int i = 0; i < sm.size() / 3; ++i)
 		{
 			auto* shap = new b2CircleShape;
-			shap->m_p = b2Vec2(sm[i * 3], sm[i * 3 + 1]);
+			shap->m_p.Set(sm[i * 3], sm[i * 3 + 1]);
 			shap->m_radius = sm[i * 3 + 2];
 			phys.shapes.push_back(shap);
 		}
@@ -104,7 +118,7 @@ void Box2DSystem::update(GGScene* scene)
 		if (!scene->entities.has<Transform2D>(E)) continue;
 
 		auto pos = temp->GetPosition();
-		auto ang = temp->GetAngle() * (180.0f/3.14159f);
+		auto ang = temp->GetAngle() * (180.0f / PI);
 		scene->entities.replace<Transform2D>(E, pos.x * scale_factor, pos.y * scale_factor, ang);
 	}
 
@@ -131,7 +145,7 @@ void Box2DSystem::register_components(GGScene* scene)
 	return;
 }
 
-Box2DSystem::Box2DSystem() : step(0), scale_factor(50.0f), m_world(new b2World({0, 9.0f}))
+Box2DSystem::Box2DSystem() : step(0), scale_factor(30.0f), m_world(new b2World({0, 9.0f}))
 {
 	return;
 }
