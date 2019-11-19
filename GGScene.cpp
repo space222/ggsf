@@ -322,13 +322,19 @@ GGScene* GGScene::loadFile(const std::wstring& fname, GGLoadProgress* LP)
 		{
 			return sol::nil;
 		}
-		return sol::make_object(scene->lua,  iter->second);
+		return sol::make_object(scene->lua, iter->second);
 		});
 
 	tem.set_function("spawnAtWithID", [=](GGTemplate* temp, sol::object& obj, Transform2D& trans) -> sol::object {
 		if (!temp) return sol::nil;
+		auto& comps = temp->components;
 		entt::entity E = scene->entities.create(temp->E, scene->templates);
 		scene->entities.assign_or_replace<Transform2D>(E, trans);
+		json J;
+		for (ComponentInterface* CI : comps)
+		{
+			CI->create_instance(scene, scene->entities, E, J);
+		}
 		if (obj.get_type() == sol::type::string)
 		{
 			std::string id = obj.as<std::string>();
