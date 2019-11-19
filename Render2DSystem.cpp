@@ -50,6 +50,9 @@ void Render2DSystem::render(GGScene* scene)
 {
 	std::vector<RJob> jobs;
 
+	ID3D11SamplerState* samst = sampler.get();
+	GlobalX::getContext()->PSSetSamplers(0, 1, &samst);
+
 	float factor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	GlobalX::getContext()->OMSetBlendState(blend.get(), factor, 0xffffffff);
 
@@ -204,6 +207,17 @@ Render2DSystem::Render2DSystem()
 	basic2d_consts = Buffer::create(128, D3D11_BIND_CONSTANT_BUFFER);
 
 	persp = glm::ortho<float>(0.0f, GlobalX::screenWidth(), GlobalX::screenHeight(), 0.0f);
+
+	D3D11_SAMPLER_DESC sampdesc;
+	ZeroMemory(&sampdesc, sizeof(sampdesc));
+	sampdesc.Filter = D3D11_FILTER::D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampdesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampdesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampdesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampdesc.MaxLOD = FLT_MAX;
+	sampdesc.MinLOD = -FLT_MAX;
+	sampdesc.MaxAnisotropy = 1;
+	GlobalX::getDevice()->CreateSamplerState((D3D11_SAMPLER_DESC*)&sampdesc, sampler.put());
 
 	D3D11_BLEND_DESC bldesc;
 	ZeroMemory(&bldesc, sizeof(bldesc));

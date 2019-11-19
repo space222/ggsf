@@ -3,6 +3,9 @@
 #include "GGScene.h"
 #include <Box2D/Box2D.h>
 #include "Box2DSystem.h"
+#include "entt_extra.h"
+#include <glm/glm.hpp>
+#include <sol/sol.hpp>
 
 const float PI = 3.14159265f;
 
@@ -142,6 +145,46 @@ void Box2DSystem::setting(GGScene*, const std::string& stt, std::variant<std::st
 void Box2DSystem::register_components(GGScene* scene)
 {
 	scene->components.insert(std::make_pair("physics2d", new Box2DComponent(this)));
+	return;
+}
+
+void box2d_addvelocity(GGEntity* ent, const glm::vec2& v) 
+{
+	OutputDebugStringA("\n\nGOT HERE TO ADD VEL\n\n");
+	if (!ent) return;
+	B2DPhysics& P = ent->reg->get<B2DPhysics>(ent->E);
+	if (!P.body) return;
+	auto vel = P.body->GetLinearVelocity();
+	P.body->SetLinearVelocity(b2Vec2(vel.x + v.x, vel.y + v.y));
+	OutputDebugStringA("\n\nADDED VELOCITY\n\n");
+	return;
+}
+
+void Box2DSystem::init_scripting(GGScene* scene)
+{
+	auto& lua = scene->lua;
+
+	auto ent = lua["Entity"];
+	
+	ent["addVelocity"] = [=](GGEntity* ent, const glm::vec2& v) {
+		//OutputDebugStringA("\n\nGOT HERE TO ADD VEL\n\n");
+		if (!ent) return;
+		B2DPhysics& P = ent->reg->get<B2DPhysics>(ent->E);
+		if (!P.body) return;
+		auto vel = P.body->GetLinearVelocity();
+		P.body->SetLinearVelocity(b2Vec2(vel.x + v.x, vel.y + v.y));
+		//OutputDebugStringA("\n\nADDED VELOCITY\n\n");
+		return;
+		};
+		
+	ent["setVelocity"] = [=](GGEntity* ent, const glm::vec2& v) {
+		if (!ent) return;
+		B2DPhysics& P = ent->reg->get<B2DPhysics>(ent->E);
+		if (!P.body) return;
+		P.body->SetLinearVelocity(b2Vec2(v.x, v.y));
+		return;
+		};
+
 	return;
 }
 

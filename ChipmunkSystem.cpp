@@ -169,7 +169,7 @@ void ggentity_setVelocity(GGEntity* ent, const glm::vec2& vel)
 void ChipmunkSystem::init_scripting(GGScene* scene)
 {
 	auto& lua = scene->lua;
-
+	OutputDebugStringA("\n\nTHIS SHOULD NOT HAPPEN!\n\n");
 	lua["Entity"]["setVelocity"] = ggentity_setVelocity;
 	lua["Entity"]["addVelocity"] = ggentity_addVelocity;
 

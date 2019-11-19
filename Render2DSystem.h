@@ -68,6 +68,7 @@ public:
 	Shader* geom2d_circle;
 	Buffer* basic2d_verts;
 	Buffer* basic2d_consts;
+	winrt::com_ptr<ID3D11SamplerState> sampler;
 	winrt::com_ptr<ID3D11BlendState> blend;
 	glm::mat4 persp;
 	glm::vec2 camera_pos = glm::vec2(0.f,0.f);

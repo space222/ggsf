@@ -45,11 +45,33 @@ GGScene* GGScene::loadFile(const std::wstring& fname, GGLoadProgress* LP)
 	GGScene* scene = new GGScene;
 	scene->load_progress = LP;
 
-	for (auto& ff : ggsystem_factories)
+	if (json systems = settings["systems"]; systems.is_array())
 	{
-		SystemInterface* SI = ff.second();
-		SI->register_components(scene);
-		scene->systems.insert(make_pair(ff.first, SI));
+		std::vector<std::string> st = systems.get<std::vector<std::string>>();
+		for (std::string& sysname : st)
+		{
+			auto iter = ggsystem_factories.find(sysname);
+			if (iter == std::end(ggsystem_factories))
+			{
+				//todo: log error
+				continue;
+			}
+			SystemInterface* SI = iter->second();
+			SI->register_components(scene);
+			scene->systems.insert(make_pair(sysname, SI));
+		}
+		auto iter = find(std::begin(st), std::end(st), "ID");
+		if (iter == std::end(st))
+		{
+			auto found = ggsystem_factories.find("ID");
+			SystemInterface* SI = found->second();
+			SI->register_components(scene);
+			scene->systems.insert(make_pair(std::string("ID"), SI));
+		}
+	} else {
+		OutputDebugStringA("\n\nFatal error: list of systems required.\n\n");
+		delete scene;
+		return nullptr;
 	}
 
 	scene->fsys = zfs.release();
@@ -98,31 +120,6 @@ GGScene* GGScene::loadFile(const std::wstring& fname, GGLoadProgress* LP)
 		scene->clearColor[3] = cc[3];
 	}
 
-
-	if (!settings.contains("systems"))
-	{
-		OutputDebugStringA("\n\nNO SYSTEMS FOUND\n\n");
-		return scene;
-	}
-
-	{
-		std::vector<std::string> systems = settings["systems"].get<std::vector<std::string>>();
-		for (std::string& sys : systems)
-		{
-			if (scene->systems.find(sys) != scene->systems.end()) continue;
-			auto factory_iter = ggsystem_factories.find(sys);
-			if (factory_iter == std::end(ggsystem_factories))
-			{
-				std::string oa = "\n\nSYSTEM '" + sys + "' NOT REGISTERED\n\n";
-				OutputDebugStringA(oa.c_str());
-				continue;
-			}
-			SystemInterface* SI = factory_iter->second();
-			scene->systems.insert(std::make_pair(sys, SI));
-			SI->register_components(scene);
-		}
-	}
-
 	if (settings.contains("system-settings"))
 	{
 		for (auto sts : settings["system-settings"].items())
@@ -153,10 +150,7 @@ GGScene* GGScene::loadFile(const std::wstring& fname, GGLoadProgress* LP)
 			scene->begins.push_back(iter->second);
 		}
 	}
-	else {
-		//todo: just all of them in order
-	}
-
+	
 	if (settings.contains("update-calls"))
 	{
 		std::vector<std::string> bcs = settings["update-calls"].get<std::vector<std::string> >();

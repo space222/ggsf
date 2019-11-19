@@ -19,6 +19,7 @@ public:
 	void register_components(GGScene*) override;
 	void update(GGScene*) override;
 	void setting(GGScene*, const std::string&, std::variant<std::string, int, float>) override;
+	void init_scripting(GGScene*) override;
 
 	float factor() const { return scale_factor; }
 	b2World* world() const { return m_world.get(); }

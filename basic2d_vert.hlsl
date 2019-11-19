@@ -59,8 +59,8 @@ VOUT main(uint id: SV_VertexID)
 		0, 0, 0, 1
 	};
 
-
-	float4 temp = mul(mTw, orp) + float4(recpos.xy + recpos.ba / 2, 0.0, 0.0);
+	// + recpos.ba / 2
+	float4 temp = mul(mTw, orp) + float4(recpos.xy, 0.0, 0.0);
 	temp -= campos;
 	retval.position = mul(persp, temp);
 
