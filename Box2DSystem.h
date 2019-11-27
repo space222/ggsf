@@ -4,6 +4,7 @@
 struct B2DPhysics
 {
 	int type;
+	bool sensor;
 	std::vector<b2Shape*> shapes;
 	std::vector<b2Vec2> shape_pos;
 	b2Body* body;

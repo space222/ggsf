@@ -34,10 +34,9 @@ bool Box2DComponent::create_instance(GGScene*, entt::registry& reg, entt::entity
 		fixdef.density = 1;
 		fixdef.restitution = phys.restitution;
 		fixdef.friction = phys.friction;
+		fixdef.isSensor = phys.sensor;
 		phys.body->CreateFixture(&fixdef);
 	}
-
-	//phys.body->SetTransform(def.position, trans.angle * (PI / 180));
 
 	return true;
 }
@@ -48,6 +47,7 @@ void Box2DComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, nl
 	phys.friction = (J["friction"].is_number()) ? J["friction"].get<float>() : 1.0f;
 	phys.restitution = (J["restitution"].is_number()) ? J["restitution"].get<float>() : 0.3f;
 	phys.mass = (J["mass"].is_number()) ? J["mass"].get<float>() : 1.0f;
+	phys.sensor = (J["sensor"].is_boolean()) ? J["sensor"].get<bool>() : false;
 	phys.type = 0;
 	phys.body = nullptr;
 
@@ -73,6 +73,15 @@ void Box2DComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, nl
 		for_each(std::begin(sm), std::end(sm), [=](float& i) { i /= sys->factor(); });
 		auto* shap = new b2PolygonShape;
 		shap->Set((b2Vec2*)sm.data(), sm.size() / 2);
+		phys.shapes.push_back(shap);
+	}
+	
+	if (nlohmann::json pnts = J["segments"]; pnts.is_array())
+	{
+		std::vector<float> sm = pnts.get<std::vector<float>>();
+		for_each(std::begin(sm), std::end(sm), [=](float& i) { i /= sys->factor(); });
+		auto* shap = new b2ChainShape;
+		shap->CreateChain((b2Vec2*)sm.data(), sm.size() / 2);
 		phys.shapes.push_back(shap);
 	}
 	
@@ -139,6 +148,14 @@ void Box2DSystem::setting(GGScene*, const std::string& stt, std::variant<std::st
 			scale_factor = std::get<float>(val);
 		}
 	}
+	if (stt == "gravity")
+	{
+		if (std::holds_alternative<std::string>(val))
+		{
+			std::string v = std::get<std::string>(val);
+			if (v == "false") m_world->SetGravity(b2Vec2(0, 0));
+		}
+	}
 	return;
 }
 
@@ -185,6 +202,9 @@ void Box2DSystem::init_scripting(GGScene* scene)
 		return;
 		};
 
+	
+
+	
 	return;
 }
 

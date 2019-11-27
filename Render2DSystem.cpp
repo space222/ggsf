@@ -399,6 +399,28 @@ void ZIndexComponent::add(GGScene* scene, entt::registry& reg, entt::entity E, n
 	return;
 }
 
+void r2d_set_image(GGEntity* ent, GGEntity* img)
+{
+	if (!ent || !img) return;
+
+	if (img->reg->has<ImageRef>(img->E))
+	{
+		ent->reg->stomp<ImageRef>(ent->E, img->E, *img->reg);
+		if (ent->reg->has<Anim2D_ref>(ent->E))
+			ent->reg->remove<Anim2D_ref>(ent->E);
+		return;
+	}
+
+	if (img->reg->has<Anim2D_ref>(img->E))
+	{
+		ent->reg->stomp<Anim2D_ref>(ent->E, img->E, *img->reg);
+		if (ent->reg->has<ImageRef>(ent->E))
+			ent->reg->remove<ImageRef>(ent->E);
+		return;
+	}
+	return;
+}
+
 void Render2DSystem::init_scripting(GGScene* scene)
 {
 	auto& lua = scene->lua;
@@ -411,18 +433,26 @@ void Render2DSystem::init_scripting(GGScene* scene)
 						"y", &Transform2D::y, 
 						"angle", &Transform2D::angle);
 
-	lua["Entity"]["getTransform"] = [=](GGEntity* E) -> sol::object {
+	auto get_trans = [=](GGEntity* E) -> sol::object {
 		if (!E) return sol::nil;
 		Transform2D* t = E->reg->try_get<Transform2D>(E->E);
 		if (!t) return sol::nil;
 		return sol::make_object(scene->lua, *t);
-		};
+	};
 
-	lua["Entity"]["setTransform"] = [=](GGEntity* ent, Transform2D* tran) {
+	auto set_trans = [=](GGEntity* ent, Transform2D* tran) {
 		if (!ent || !tran) return;
 		Transform2D* t = ent->reg->try_get<Transform2D>(ent->E);
 		if (t) *t = *tran;
-		};
+	};
+
+	//lua["Entity"]["transform2d"] = sol::property(get_trans, set_trans);
+	//^- results in a garbage address being passed to get_trans. no idea why.
+
+	lua["Entity"]["getTransform2D"] = get_trans;
+	lua["Entity"]["setTransform2D"] = set_trans;
+
+	lua["Entity"]["setImage2D"] = r2d_set_image;
 
 	return;
 }
