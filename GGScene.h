@@ -21,6 +21,9 @@ struct GGEntity
 	entt::registry* reg;
 	std::vector<entt::entity>* list;
 	entt::entity E;
+	bool operator==(const GGEntity& b) {
+		return E == b.E;
+	}
 };
 
 struct GGTemplate

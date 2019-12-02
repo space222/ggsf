@@ -403,19 +403,33 @@ void r2d_set_image(GGEntity* ent, GGEntity* img)
 {
 	if (!ent || !img) return;
 
-	if (img->reg->has<ImageRef>(img->E))
+	if (img->reg->has<Image2D>(img->E))
 	{
-		ent->reg->stomp<ImageRef>(ent->E, img->E, *img->reg);
 		if (ent->reg->has<Anim2D_ref>(ent->E))
 			ent->reg->remove<Anim2D_ref>(ent->E);
+		
+		Image2D* I = img->reg->try_get<Image2D>(img->E);
+		ImageRef IR;
+		IR.crop = false;
+		IR.width = I->tex->width();
+		IR.height = I->tex->height();
+		IR.tex = I->tex;
+		ent->reg->assign_or_replace<ImageRef>(ent->E, IR);
 		return;
 	}
 
-	if (img->reg->has<Anim2D_ref>(img->E))
+	if (img->reg->has<Anim2D>(img->E))
 	{
-		ent->reg->stomp<Anim2D_ref>(ent->E, img->E, *img->reg);
 		if (ent->reg->has<ImageRef>(ent->E))
 			ent->reg->remove<ImageRef>(ent->E);
+
+		Anim2D_data* data = img->reg->get<Anim2D>(img->E).anim;
+		Anim2D_ref ref;
+		ref.anim = data;
+		ref.current_frame = 0;
+		ref.playing = true;
+		ref.time = std::chrono::duration<float>(0);
+		ent->reg->assign_or_replace<Anim2D_ref>(ent->E, ref);
 		return;
 	}
 	return;
